@@ -1,18 +1,39 @@
 import streamlit as st
-import os
-from dotenv import load_dotenv
-from WebStreamer import WebStreamer  # Adjust this import based on how WebStreamer is structured
+from WebStreamer import StreamBot, web_server, ping_server, initialize_clients
 
-# Load environment variables (if needed)
-load_dotenv()
+def run_streaming_bot():
+    # Example: Initialize the bot and run it
+    bot = StreamBot()
+    bot.run()
+    st.success("Streaming bot is running!")
 
-# Streamlit app UI setup
-st.title("My Streamlit WebStreamer App")
-st.write("This app runs WebStreamer in the background!")
+def run_web_server():
+    # Example: Initialize and start the web server
+    server = web_server()
+    server.start()
+    st.success("Web server is running!")
 
-# Button to trigger WebStreamer
-if st.button('Run WebStreamer'):
-    # Call the WebStreamer (ensure it's set up to run from this file)
-    WebStreamer.run()  # Adjust based on how the WebStreamer module is set up
+def check_server_status():
+    # Example: Ping the server to check if it’s active
+    status = ping_server().check_status()
+    if status:
+        st.success("Server is up and running!")
+    else:
+        st.error("Server is down.")
 
-st.write("More information or status can be shown here.")
+def main():
+    st.title("WebStreamer Streamlit App")
+
+    # Add Streamlit interface for different actions
+    st.sidebar.header("Choose Action:")
+    choice = st.sidebar.radio("Select Action", ["Start Streaming Bot", "Start Web Server", "Check Server Status"])
+
+    if choice == "Start Streaming Bot":
+        run_streaming_bot()
+    elif choice == "Start Web Server":
+        run_web_server()
+    elif choice == "Check Server Status":
+        check_server_status()
+
+if __name__ == "__main__":
+    main()
