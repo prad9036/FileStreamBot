@@ -7,36 +7,50 @@ st.title("Streamlit CodeShell (Bash-like)")
 
 # Detect operating system
 os_type = platform.system()
+
+# Display the operating system
 st.write(f"Operating System: {os_type}")
 
+# Multi-line text area for variables
+st.subheader("Environment Variables")
+variables = st.text_area(
+    "Enter your environment variables here (key=value format, one per line):",
+    "",
+    placeholder="API_ID=123456\nAPI_HASH=abcdef...\nBOT_TOKEN=xyz...",
+)
+
 # Input area for the shell command
-command = st.text_area("Enter your shell command (supports multiline):", "")
+st.subheader("Shell Command")
+command = st.text_input("Enter your shell command:", "")
 
 # Button to execute the command
 if st.button("Run Command"):
     if command:
         try:
-            # Choose the shell environment based on the OS
-            if os_type == "Windows":
-                # Use PowerShell for advanced commands on Windows
-                shell_cmd = ["powershell.exe", "-Command", command]
-            else:
-                # Use Bash for Unix-like systems
-                shell_cmd = ["/bin/bash", "-c", command]
-            
-            # Execute the command and capture the output
+            # Parse and set environment variables from input
+            env_vars = {}
+            for line in variables.strip().split("\n"):
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    env_vars[key.strip()] = value.strip()
+
+            # Execute the shell command with environment variables
             result = subprocess.run(
-                shell_cmd, text=True, capture_output=True
+                command,
+                shell=True,  # Use shell=True for compatibility
+                text=True,
+                capture_output=True,
+                env={**env_vars, **os.environ},  # Combine custom vars with system env
             )
-            
+
             # Display the output
             st.subheader("Output:")
-            st.text(result.stdout.strip())
-            
+            st.text(result.stdout)
+
             # Display errors if any
             if result.stderr:
                 st.subheader("Error:")
-                st.text(result.stderr.strip())
+                st.text(result.stderr)
         except Exception as e:
             st.error(f"An error occurred: {e}")
     else:
