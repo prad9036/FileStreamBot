@@ -1,7 +1,7 @@
 import streamlit as st
 import subprocess
 import platform
-
+import os
 # Streamlit App Title
 st.title("Streamlit CodeShell (Bash-like)")
 
