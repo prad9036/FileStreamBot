@@ -1,27 +1,43 @@
 import streamlit as st
 import subprocess
-import sys
+import platform
 
-def run_webstreamer():
-    try:
-        # Run `python -m WebStreamer` as a subprocess
-        result = subprocess.run([sys.executable, "-m", "WebStreamer"], capture_output=True, text=True)
-        
-        # Output the result to the Streamlit interface
-        if result.returncode == 0:
-            st.success("WebStreamer started successfully!")
-            st.text(result.stdout)  # Show the standard output of the command
-        else:
-            st.error("Error running WebStreamer.")
-            st.text(result.stderr)  # Show the error output
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+# Streamlit App Title
+st.title("Streamlit CodeShell (Bash-like)")
 
-def main():
-    st.title("Run WebStreamer")
+# Detect operating system
+os_type = platform.system()
+st.write(f"Operating System: {os_type}")
 
-    if st.button("Start WebStreamer"):
-        run_webstreamer()
+# Input area for the shell command
+command = st.text_area("Enter your shell command (supports multiline):", "")
 
-if __name__ == "__main__":
-    main()
+# Button to execute the command
+if st.button("Run Command"):
+    if command:
+        try:
+            # Choose the shell environment based on the OS
+            if os_type == "Windows":
+                # Use PowerShell for advanced commands on Windows
+                shell_cmd = ["powershell.exe", "-Command", command]
+            else:
+                # Use Bash for Unix-like systems
+                shell_cmd = ["/bin/bash", "-c", command]
+            
+            # Execute the command and capture the output
+            result = subprocess.run(
+                shell_cmd, text=True, capture_output=True
+            )
+            
+            # Display the output
+            st.subheader("Output:")
+            st.text(result.stdout.strip())
+            
+            # Display errors if any
+            if result.stderr:
+                st.subheader("Error:")
+                st.text(result.stderr.strip())
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+    else:
+        st.warning("Please enter a command to run.")
