@@ -2,8 +2,6 @@ import streamlit as st
 import subprocess
 import platform
 import os
-import requests
-
 # Streamlit App Title
 st.title("Streamlit CodeShell (Bash-like)")
 
@@ -13,32 +11,17 @@ os_type = platform.system()
 # Display the operating system
 st.write(f"Operating System: {os_type}")
 
-# Multi-line text area for environment variables
+# Multi-line text area for variables
 st.subheader("Environment Variables")
 variables = st.text_area(
     "Enter your environment variables here (key=value format, one per line):",
     "",
-    placeholder="API_ID=123456\nAPI_HASH=abcdef...\nBOT_TOKEN=xyz..."
+    placeholder="API_ID=123456\nAPI_HASH=abcdef...\nBOT_TOKEN=xyz...",
 )
 
 # Input area for the shell command
 st.subheader("Shell Command")
 command = st.text_input("Enter your shell command:", "")
-
-# Input for port and URL
-st.subheader("Port and URL")
-port = st.text_input("Enter port (e.g., 8080):", "")
-url = st.text_input("Enter URL to view:", "")
-
-# Display URL content if entered
-if url:
-    st.subheader(f"Content from {url}:")
-    try:
-        # Request content from the URL
-        response = requests.get(url)
-        st.text(response.text)
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching URL: {e}")
 
 # Button to execute the command
 if st.button("Run Command"):
@@ -72,7 +55,3 @@ if st.button("Run Command"):
             st.error(f"An error occurred: {e}")
     else:
         st.warning("Please enter a command to run.")
-
-# Display port if entered
-if port:
-    st.write(f"Entered Port: {port}")
