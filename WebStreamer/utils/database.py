@@ -100,19 +100,46 @@ class Database:
         return user_files, total_files
 
     # ----------[Search Files]----------
-    async def search_files(self, user_id, query, pagination):
-        page, limit = pagination
-        offset = (page - 1) * limit
+   async def search_files(self, user_id, query, pagination):
+    page, limit = pagination
 
-        files_cursor = self.file.find(
-            {"user_id": user_id, "file_name": {"$regex": query, "$options": "i"}}
-        ).skip(offset).limit(limit)
+    # Ensure valid page and limit
+    page = max(1, page)  
+    limit = max(1, min(limit, 100))  # Limit capped at 100
 
-        total_files = await self.file.count_documents(
-            {"user_id": user_id, "file_name": {"$regex": query, "$options": "i"}}
-        )
+    offset = (page - 1) * limit
 
-        return files_cursor, total_files
+    # Get total count first
+    total_files = await self.file.count_documents(
+        {"user_id": user_id, "file_name": {"$regex": query, "$options": "i"}}
+    )
+
+    # If no files found, return early
+    if total_files == 0:
+        return {
+            "files": [],
+            "total_files": 0,
+            "total_pages": 0,
+            "current_page": page,
+            "has_more": False,
+        }
+
+    # Fetch paginated results
+    files_list = await self.file.find(
+        {"user_id": user_id, "file_name": {"$regex": query, "$options": "i"}}
+    ).skip(offset).limit(limit).to_list(length=limit)
+
+    # Calculate pagination metadata
+    total_pages = (total_files + limit - 1) // limit  # Round up division
+    has_more = page < total_pages
+
+    return {
+        "files": files_list,
+        "total_files": total_files,
+        "total_pages": total_pages,
+        "current_page": page,
+        "has_more": has_more,
+    }
 
     # ----------[Get One File]----------
     async def get_file(self, _id):
