@@ -14,7 +14,7 @@ class Database:
         self.black = self.db.blacklist
         self.file = self.db.file
 
-    # ----------[Add User]----------
+    # ----------[User Management]----------
     def new_user(self, id):
         return dict(
             id=id,
@@ -27,71 +27,47 @@ class Database:
         user = self.new_user(id)
         await self.col.insert_one(user)
 
-    # ----------[User Info]----------
     async def get_user(self, id):
-        user = await self.col.find_one({'id': int(id)})
-        return user
+        return await self.col.find_one({'id': int(id)})
 
-    # ----------[User Count]----------
     async def total_users_count(self):
-        count = await self.col.count_documents({})
-        return count
+        return await self.col.count_documents({})
 
-    # ----------[User List]----------
-    async def get_all_users(self):
-        all_users = self.col.find({})
-        return all_users
-
-    # ----------[Remove User]----------
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
-    # ----------[User Accept to TOS]----------
     async def agreed_tos(self, user_id):
         await self.col.update_one(
             {"id": int(user_id)},
             {"$set": {
                 "agreed_to_tos": True,
                 "when_agreed_to_tos": time.time()
-                }
-            }
+            }}
         )
 
-    # ----------[Ban User]----------
-    def black_user(self, id):
-        return dict(
-            id=id,
-            ban_date=time.time()
-        )
-
+    # ----------[Ban System]----------
     async def ban_user(self, id):
-        user = self.black_user(id)
+        user = {"id": id, "ban_date": time.time()}
         await self.black.insert_one(user)
         await self.delete_user(id)
 
-    # ----------[Unban User]----------
     async def unban_user(self, id):
         await self.black.delete_one({'id': int(id)})
 
-    # ----------[Check if User is Banned]----------
     async def is_user_banned(self, id):
-        user = await self.black.find_one({'id': int(id)})
-        return True if user else False
+        return await self.black.find_one({'id': int(id)}) is not None
 
-    # ----------[Banned User Count]----------
     async def total_banned_users_count(self):
-        count = await self.black.count_documents({})
-        return count
+        return await self.black.count_documents({})
 
-    # ----------[Add File]----------
+    # ----------[File System]----------
     async def add_file(self, file_info):
         file_info["time"] = time.time()
-        fetch_old = await self.get_file_by_fileuniqueid(file_info["user_id"], file_info["file_unique_id"])
-        if fetch_old:
-            return fetch_old["_id"]
+        existing_file = await self.get_file_by_fileuniqueid(file_info["user_id"], file_info["file_unique_id"])
+        if existing_file:
+            return existing_file["_id"]
         return (await self.file.insert_one(file_info)).inserted_id
 
-    # ----------[User File List]----------
     async def find_files(self, user_id, range):
         user_files = self.file.find({"user_id": user_id})
         user_files = user_files.skip(range[0] - 1).limit(range[1] - range[0] + 1)
@@ -99,9 +75,8 @@ class Database:
         total_files = await self.file.count_documents({"user_id": user_id})
         return user_files, total_files
 
-    # ----------[Search Files]----------
-    async def search_files(self, user_id, query, pagination):
-        page, limit = pagination
+    async def search_files(self, user_id, query, page=1, limit=10):
+        """Search files with pagination."""
         offset = (page - 1) * limit
 
         files_cursor = self.file.find(
@@ -112,9 +87,8 @@ class Database:
             {"user_id": user_id, "file_name": {"$regex": query, "$options": "i"}}
         )
 
-        return files_cursor, total_files
+        return files_cursor, total_files, query  # Returning query to persist it
 
-    # ----------[Get One File]----------
     async def get_file(self, _id):
         try:
             file_info = await self.file.find_one({"_id": ObjectId(_id)})
@@ -124,39 +98,27 @@ class Database:
         except InvalidId:
             raise FIleNotFound
 
-    # ----------[Get File Using Unique ID]----------
     async def get_file_by_fileuniqueid(self, id, file_unique_id, many=False):
         if many:
             return self.file.find({"file_unique_id": file_unique_id})
-        else:
-            file_info = await self.file.find_one({"user_id": id, "file_unique_id": file_unique_id})
-        if file_info:
-            return file_info
-        return False
+        return await self.file.find_one({"user_id": id, "file_unique_id": file_unique_id})
 
-    # ----------[Total File Count]----------
     async def total_files(self, id=None):
-        if id:
-            return await self.file.count_documents({"user_id": id})
-        return await self.file.count_documents({})
+        return await self.file.count_documents({"user_id": id} if id else {})
 
-    # ----------[Delete File]----------
     async def delete_one_file(self, _id):
         await self.file.delete_one({'_id': ObjectId(_id)})
 
-    # ----------[Update FileID List]----------
     async def update_file_ids(self, _id, file_ids: dict):
         await self.file.update_one({"_id": ObjectId(_id)}, {"$set": {"file_ids": file_ids}})
 
-    # ----------[Links Left]----------
     async def link_available(self, id):
         if not Var.LINK_LIMIT:
             return True
-        user = await self.col.find_one({"id": id})
-        if user.get("Plan") == "Plus":
+        user = await self.get_user(id)
+        if user and user.get("Plan") == "Plus":
             return "Plus"
-        elif user.get("Plan") == "Free":
+        elif user and user.get("Plan") == "Free":
             files = await self.file.count_documents({"user_id": id})
-            if files <= Var.LINK_LIMIT:
-                return True
-            return False
+            return files <= Var.LINK_LIMIT
+        return False
