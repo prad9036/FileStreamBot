@@ -5,3 +5,11 @@ tgcrypto
 motor
 aiofiles
 dnspython
+streamlit
+flask-shell
+yt-dlp
+telethon
+python-dotenv
+pyrogram
+pymongo
+user-agents
