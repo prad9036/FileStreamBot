@@ -88,28 +88,44 @@ async def gen_file_list_button(file_list_no: int, user_id: int):
 
 async def gen_file_menu(_id, file_list_no, update: CallbackQuery):
     try:
-        myfile_info=await db.get_file(_id)
+        myfile_info = await db.get_file(_id)
     except FIleNotFound:
         await update.answer("File Not Found")
         return
 
-    file_type=file_format(myfile_info['file_id'])
+    file_type = file_format(myfile_info['file_id'])
 
+    # ⬇️ Updated stream & page links
+    file_name_encoded = myfile_info['file_name'].replace(" ", "%20")
     page_link = f"{Var.URL}watch/{myfile_info['_id']}"
-    stream_link = f"{Var.URL}dl/{myfile_info['_id']}"
-    TiMe=myfile_info['time']
-    if type(TiMe) == float:
+    stream_link = f"{Var.URL}dl/{myfile_info['_id']}/{file_name_encoded}"
+
+    TiMe = myfile_info['time']
+    if isinstance(TiMe, float):
         date = datetime.datetime.fromtimestamp(TiMe)
+
     await update.edit_message_caption(
-        caption="Name: {}\nFile Size: {}\nType: {}\nCreated at: {}\nTime: {}".format(myfile_info['file_name'], humanbytes(int(myfile_info['file_size'])), file_type, TiMe if isinstance(TiMe, str) else date.date(), "N/A" if isinstance(TiMe, str) else date.time().strftime("%I:%M:%S %p %Z")),
+        caption="Name: {}\nFile Size: {}\nType: {}\nCreated at: {}\nTime: {}".format(
+            myfile_info['file_name'],
+            humanbytes(int(myfile_info['file_size'])),
+            file_type,
+            TiMe if isinstance(TiMe, str) else date.date(),
+            "N/A" if isinstance(TiMe, str) else date.time().strftime("%I:%M:%S %p %Z")
+        ),
         reply_markup=InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton("Back", callback_data="userfiles_{}".format(file_list_no)), InlineKeyboardButton("Delete Link", callback_data=f"msgdelconf2_{myfile_info['_id']}_{file_list_no}")],
-                [InlineKeyboardButton("🖥STREAM", url=page_link), InlineKeyboardButton("Dᴏᴡɴʟᴏᴀᴅ 📥", url=stream_link)],
+                [
+                    InlineKeyboardButton("Back", callback_data=f"userfiles_{file_list_no}"),
+                    InlineKeyboardButton("Delete Link", callback_data=f"msgdelconf2_{myfile_info['_id']}_{file_list_no}")
+                ],
+                [
+                    InlineKeyboardButton("🖥STREAM", url=page_link),
+                    InlineKeyboardButton("Dᴏᴡɴʟᴏᴀᴅ 📥", url=stream_link)
+                ],
                 [InlineKeyboardButton("Get File", callback_data=f"sendfile_{myfile_info['_id']}")]
             ]
-            )
         )
+    )
 
 async def delete_user_file(_id, update:CallbackQuery):
     try:
