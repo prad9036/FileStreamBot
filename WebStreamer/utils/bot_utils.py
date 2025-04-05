@@ -48,17 +48,22 @@ async def gen_link(m: Message, _id, name: list) -> tuple[InlineKeyboardMarkup, s
     lang = Language(m)
     file_name = get_name(m)
     file_size = humanbytes(get_media_file_size(m))
-    page_link = f"{Var.URL}watch/{_id}"
     
-    stream_link = f"{Var.URL}dl/{_id}"
-    Stream_Text=lang.STREAM_MSG_TEXT.format(file_name, file_size, stream_link, page_link, name[0], name[1])
-    reply_markup=InlineKeyboardMarkup(
+    # 👇 UPDATED: Add filename to the stream URL
+    page_link = f"{Var.URL}watch/{_id}"
+    stream_link = f"{Var.URL}dl/{_id}/{file_name.replace(' ', '%20')}"  # Encode spaces in URL
+
+    Stream_Text = lang.STREAM_MSG_TEXT.format(file_name, file_size, stream_link, page_link, name[0], name[1])
+    
+    reply_markup = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("🖥STREAM", url=page_link), InlineKeyboardButton("Dᴏᴡɴʟᴏᴀᴅ 📥", url=stream_link)]
-            ]
-        )
+            [InlineKeyboardButton("🖥 STREAM", url=page_link),
+             InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ", url=stream_link)]
+        ]
+    )
 
     return reply_markup, Stream_Text
+
 
 async def is_user_banned(message, lang) -> bool:
     if await db.is_user_banned(message.from_user.id):
