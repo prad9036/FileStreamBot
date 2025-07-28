@@ -13,3 +13,4 @@ python-dotenv
 pyrogram
 pymongo
 user-agents
+parse-torrent-title
