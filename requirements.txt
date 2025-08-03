@@ -1,0 +1,15 @@
+aiohttp
+https://github.com/KurimuzonAkuma/pyrogram/archive/refs/tags/v2.1.24.zip
+python-dotenv
+tgcrypto
+motor
+aiofiles
+dnspython
+streamlit
+flask-shell
+yt-dlp
+telethon
+python-dotenv
+pyrogram
+pymongo
+user-agents
