@@ -176,6 +176,63 @@ async def media_streamer(request, path, filename):
     }
     return web.Response(status=206 if range_header else 200, body=body, headers=headers)
 
+import asyncio
+import subprocess
+import re
+
+@routes.get("/insta")
+async def insta_handler(request):
+    reel_url = request.query.get("url")
+    if not reel_url:
+        return web.json_response({"error": "Missing ?url parameter"}, status=400)
+
+    curl_cmd = [
+        "curl", "https://bestmediatool.com/",
+        "-H", "authority: bestmediatool.com",
+        "-H", "accept: text/x-component",
+        "-H", "accept-language: en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7",
+        "-H", "content-type: text/plain;charset=UTF-8",
+        "-H", "cookie: NEXT_LOCALE=en",
+        "-H", "dnt: 1",
+        "-H", "next-action: f87b40794a0dc15dbcbc778d5d915b41d9954cb1",
+        "-H", "next-router-state-tree: %5B%22%22%2C%7B%22children%22%3A%5B%5B%22locale%22%2C%22en%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2C%22%2F%22%2C%22refresh%22%5D%7D%2Cnull%2Cnull%2Ctrue%5D%7D%5D",
+        "-H", "origin: https://bestmediatool.com",
+        "-H", "referer: https://bestmediatool.com/",
+        "-H", 'sec-ch-ua: "Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
+        "-H", "sec-ch-ua-mobile: ?0",
+        "-H", 'sec-ch-ua-platform: "Windows"',
+        "-H", "sec-fetch-dest: empty",
+        "-H", "sec-fetch-mode: cors",
+        "-H", "sec-fetch-site: same-origin",
+        "-H", "user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+        "--data-raw", f"[\"{reel_url}\"]",
+        "--compressed"
+    ]
+
+    try:
+        # Run curl in async way
+        process = await asyncio.create_subprocess_exec(
+            *curl_cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            return web.json_response({"error": stderr.decode().strip()}, status=500)
+
+        output = stdout.decode()
+
+        match = re.search(r'https[^"\']+\.mp4[^"\']*', output)
+        if match:
+            return web.json_response({"mp4": match.group(0)})
+        else:
+            return web.json_response({"error": "No .mp4 found in response"}, status=404)
+
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+
 # ── Run App ──
 def run_app():
     app = web.Application()
