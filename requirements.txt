@@ -6,6 +6,7 @@ motor
 aiofiles
 dnspython
 streamlit
+flask
 flask-shell
 yt-dlp
 parse-torrent-title
